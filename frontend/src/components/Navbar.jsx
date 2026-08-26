@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X, Sparkles, LayoutDashboard, Wand2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
 
@@ -108,6 +108,17 @@ export default function Navbar({ theme, onToggleTheme }) {
           >
             <Sparkles className="w-4 h-4 text-primary" />
             Virtual Try-On
+          </NavLink>
+          <NavLink
+            to="/stylist"
+            className={({ isActive }) =>
+              `text-sm font-semibold flex items-center gap-1.5 transition-colors duration-200 py-1 ${
+                isActive ? 'text-primary border-b-2 border-primary' : 'text-on-surface-variant hover:text-primary'
+              }`
+            }
+          >
+            <Wand2 className="w-4 h-4 text-primary" />
+            AI Stylist
           </NavLink>
           <NavLink
             to="/admin"
@@ -229,6 +240,14 @@ export default function Navbar({ theme, onToggleTheme }) {
           >
             <Sparkles className="w-4 h-4 text-primary" />
             Virtual Try-On
+          </NavLink>
+          <NavLink
+            to="/stylist"
+            onClick={() => setIsMenuOpen(false)}
+            className="text-base font-medium text-on-surface hover:text-primary flex items-center gap-2"
+          >
+            <Wand2 className="w-4 h-4 text-primary" />
+            AI Stylist
           </NavLink>
           <NavLink
             to="/admin"

@@ -141,6 +141,17 @@ export const wishlist = {
     }),
 };
 
+// ─── AI Stylist ───────────────────────────────────────────────────────────────
+// Expected response: { success, data: { outfitName, reason, items, totalPrice,
+// overBudget, insufficientCatalog } } or { success: false, message } on error.
+export const stylist = {
+  recommend: ({ prompt, occasion, style, budget, color }) =>
+    request('/stylist/recommend', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, occasion, style, budget, color }),
+    }),
+};
+
 // ─── Orders ───────────────────────────────────────────────────────────────────
 export const orders = {
   // Cash on Delivery: creates the order directly

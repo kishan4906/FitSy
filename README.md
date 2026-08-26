@@ -58,6 +58,12 @@
 ### 📊 5. Admin Dashboard
 * Inventory control, product creation/editing, catalog management, and order status fulfillment panel (`Pending`, `Processing`, `Shipped`, `Delivered`).
 
+### 🤖 6. AI Personal Stylist
+* **Natural-language outfit requests** (e.g. *"I'm going to a college farewell. I want something stylish and mostly black, under $60."*) parsed into occasion/style/color/budget hints, with optional structured fields for the same inputs.
+* **Grounded recommendations only**: candidate products are retrieved from the real catalog (MongoDB, or the in-memory fallback) *before* the AI ever sees them, and every product the AI returns is re-validated against that exact candidate set — the AI can never introduce a product, price, or id that doesn't exist in the store.
+* **Powered by Groq** (Llama 3.3 70B, JSON mode) via a plain server-side `fetch` call — no client-exposed keys, no new AI SDK dependency.
+* Outfit results plug straight into the existing **cart**, **wishlist**, and **virtual try-on** flows — no parallel systems.
+
 ---
 
 ## 🏗️ System Architecture
@@ -257,7 +263,9 @@ Ensure you have the following installed on your machine:
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_...
    MODAL_VTON_URL=https://<your-modal-app>.modal.run/generate
+   GROQ_API_KEY=gsk_...
    ```
+   `GROQ_API_KEY` powers the **AI Personal Stylist** (`/api/stylist/recommend`). Get a free key at [console.groq.com/keys](https://console.groq.com/keys). If left empty, the stylist endpoint responds with a clear "AI stylist unavailable" error instead of the rest of the app breaking.
 
 5. Seed the database with sample catalog products:
    ```bash
@@ -381,6 +389,41 @@ If you want to enable pure serverless AI try-on generation using FLUX.2:
 | `POST` | `/api/tryon/estimate-body` | Run MediaPipe/SAM body pose landmarking | Public |
 | `POST` | `/api/tryon/process-tryon` | Compute backend garment warp composite | Public |
 | `POST` | `/api/tryon/generate` | Trigger FLUX.2 Serverless Neural VTON GPU inference | Public |
+
+### 🤖 AI Stylist (`/api/stylist`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/stylist/recommend` | Generate an AI outfit recommendation from real catalog products | Public |
+
+**Request body:**
+```json
+{
+  "prompt": "I'm going to a college farewell. I want something stylish and mostly black, under $60.",
+  "occasion": "College",
+  "style": "Casual",
+  "budget": 60,
+  "color": "black"
+}
+```
+`prompt` is required (max 400 characters); `occasion`, `style`, `budget`, and `color` are optional and refine candidate selection alongside whatever the AI infers from `prompt` itself.
+
+**Response body:**
+```json
+{
+  "success": true,
+  "data": {
+    "outfitName": "Smart Black Casual",
+    "reason": "Since you mentioned a college farewell and a mostly black style, I kept it smart-casual while staying in budget.",
+    "items": [
+      { "productId": "64f...", "name": "Black Oversized Shirt", "price": 45, "image": "...", "category": "Tops", "reason": "Grounds the look in black without feeling formal." }
+    ],
+    "totalPrice": 143,
+    "overBudget": false,
+    "insufficientCatalog": false
+  }
+}
+```
+On failure (`success: false`), `message` explains what went wrong (invalid input, empty catalog, AI unavailable, AI rate-limited, or no matching products) — the frontend renders each of these as a distinct state rather than a raw error.
 
 ### ⚡ Webhooks (`/api/webhook`)
 | Method | Endpoint | Description | Access |

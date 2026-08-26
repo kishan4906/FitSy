@@ -17,6 +17,7 @@ import WishlistPage from './pages/WishlistPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import StaticPage from './pages/StaticPage';
+import StylistPage from './pages/StylistPage';
 import AdminPage from './pages/AdminPage';
 import AdminDashboard from './pages/AdminDashboard';
 import { safeStorageGet, safeStorageSet } from './utils/safeStorage';
@@ -53,6 +54,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/catalog" element={<Catalog />} />
+                    <Route path="/stylist" element={<StylistPage />} />
                     <Route path="/product/:id" element={<ProductPage />} />
                     <Route
                       path="/admin"

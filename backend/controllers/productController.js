@@ -678,10 +678,29 @@ const deleteProduct = async (req, res) => {
   return res.json({ message: 'Product removed successfully', id: targetId });
 };
 
+// Internal helper (not an HTTP handler): returns the current catalog as a
+// plain array, using the same DB-else-memory logic as getProducts. Used by
+// other controllers (e.g. aiStylistController) that need product data
+// without duplicating the seed list or going through an HTTP round-trip.
+const getAllProductsInternal = async () => {
+  if (isDbReady()) {
+    try {
+      const dbProducts = await Product.find({});
+      if (dbProducts && dbProducts.length > 0) {
+        return dbProducts;
+      }
+    } catch (error) {
+      console.warn('[DB Error during getAllProductsInternal, using memory store]:', error.message);
+    }
+  }
+  return memoryProducts;
+};
+
 module.exports = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
+  getAllProductsInternal,
 };

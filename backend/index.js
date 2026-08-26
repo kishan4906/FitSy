@@ -42,6 +42,7 @@ app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/tryon', require('./routes/tryOnRoutes'));
+app.use('/api/stylist', require('./routes/stylistRoutes'));
 
 // Basic health check route
 app.get('/api/health', (req, res) => {
