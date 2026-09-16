@@ -43,6 +43,7 @@ app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/tryon', require('./routes/tryOnRoutes'));
 app.use('/api/stylist', require('./routes/stylistRoutes'));
+app.use('/api/size-recommendation', require('./routes/sizeRecommendationRoutes'));
 
 // Basic health check route
 app.get('/api/health', (req, res) => {

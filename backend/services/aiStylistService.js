@@ -130,3 +130,82 @@ async function getOutfitRecommendation(userPrompt, candidates, preferences = {})
 }
 
 module.exports = { getOutfitRecommendation };
+
+// ─── Size Fit Explanation (optional enhancement) ──────────────────────────────
+// Used by the Size Recommendation feature to turn an ALREADY-COMPUTED
+// deterministic match result into a warmer natural-language sentence.
+// This function cannot change the recommended size — it only rephrases
+// numbers that were already decided by sizeRecommendationService.js. If this
+// call fails, the caller falls back to buildDeterministicReason() instead;
+// the size recommendation itself never depends on this succeeding.
+
+const SIZE_EXPLANATION_SYSTEM_PROMPT = `You explain clothing size recommendations for an online store called FitSy.
+You will be given a size that was ALREADY determined by a measurement-matching algorithm, plus the measurement comparison data behind it.
+Write a short (1-2 sentence), warm, honest explanation of why this size fits, referencing the specific measurements that matched.
+Never say "guaranteed fit" or "perfect fit" — use language like "recommended", "best match", or "likely fit".
+Do not suggest a different size than the one given. Do not invent measurements not provided.
+Respond with ONLY a JSON object: { "reason": "string" }`;
+
+/**
+ * @param {{recommendedSize:string, confidence:string, measurementBreakdown:object, alternative?:string}} matchResult
+ * @returns {Promise<string>} explanation text
+ */
+async function explainSizeFit(matchResult) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    const err = new Error('AI stylist is not configured (missing GROQ_API_KEY).');
+    err.code = 'AI_UNAVAILABLE';
+    throw err;
+  }
+
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.3,
+      max_tokens: 200,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SIZE_EXPLANATION_SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(matchResult) },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const err = new Error(`AI explanation provider error (${response.status})`);
+    err.code = response.status === 429 ? 'AI_RATE_LIMITED' : 'AI_UNAVAILABLE';
+    throw err;
+  }
+
+  const data = await response.json();
+  const rawContent = data?.choices?.[0]?.message?.content;
+  if (!rawContent) {
+    const err = new Error('AI explanation returned empty response.');
+    err.code = 'AI_MALFORMED';
+    throw err;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(rawContent);
+  } catch {
+    const err = new Error('AI explanation returned malformed JSON.');
+    err.code = 'AI_MALFORMED';
+    throw err;
+  }
+
+  if (typeof parsed.reason !== 'string' || !parsed.reason.trim()) {
+    const err = new Error('AI explanation missing "reason".');
+    err.code = 'AI_MALFORMED';
+    throw err;
+  }
+
+  return parsed.reason.trim();
+}
+
+module.exports.explainSizeFit = explainSizeFit;

@@ -21,6 +21,7 @@ const memoryUsers = [
         phoneNumber: '+1 555-0199',
       },
     ],
+    fitProfile: {},
   },
   {
     _id: 'user_demo_002',
@@ -96,6 +97,7 @@ const registerUser = async (req, res) => {
             email: user.email,
             isAdmin: user.isAdmin,
             shippingAddresses: user.shippingAddresses || [],
+            fitProfile: user.fitProfile || {},
           },
         });
       }
@@ -129,6 +131,7 @@ const registerUser = async (req, res) => {
       email: newMemUser.email,
       isAdmin: newMemUser.isAdmin,
       shippingAddresses: newMemUser.shippingAddresses,
+      fitProfile: {},
     },
   });
 };
@@ -158,6 +161,7 @@ const loginUser = async (req, res) => {
             email: user.email,
             isAdmin: user.isAdmin,
             shippingAddresses: user.shippingAddresses || [],
+            fitProfile: user.fitProfile || {},
           },
         });
       }
@@ -181,6 +185,7 @@ const loginUser = async (req, res) => {
         email: memoryUser.email,
         isAdmin: memoryUser.isAdmin,
         shippingAddresses: memoryUser.shippingAddresses || [],
+        fitProfile: memoryUser.fitProfile || {},
       },
     });
   }
@@ -211,6 +216,7 @@ const getUserProfile = async (req, res) => {
         email: req.user.email,
         isAdmin: req.user.isAdmin,
         shippingAddresses: req.user.shippingAddresses || [],
+        fitProfile: req.user.fitProfile || {},
       },
     });
   }
@@ -277,6 +283,73 @@ const updateUserAddress = async (req, res) => {
   res.status(404).json({ message: 'User not found' });
 };
 
+// @desc    Update user's saved fit profile (body measurements for AI Size Recommendation)
+// @route   PUT /api/auth/fit-profile
+// @access  Private
+const updateFitProfile = async (req, res) => {
+  const { height, weight, chest, waist, hip, shoulder, fitPreference } = req.body;
+
+  const allowedFitPreferences = ['slim', 'regular', 'relaxed', 'oversized'];
+  const cleanFitPreference = allowedFitPreferences.includes(fitPreference) ? fitPreference : 'regular';
+
+  // Basic sanity bounds — the full validation used at recommendation time
+  // lives in sizeRecommendationService.js; this just guards what gets saved.
+  const sanitize = (value, max) => {
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 && num <= max ? num : undefined;
+  };
+
+  const fitProfile = {
+    height: sanitize(height, 230),
+    weight: sanitize(weight, 250),
+    chest: sanitize(chest, 180),
+    waist: sanitize(waist, 180),
+    hip: sanitize(hip, 180),
+    shoulder: sanitize(shoulder, 70),
+    fitPreference: cleanFitPreference,
+  };
+
+  if (isDbReady()) {
+    try {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.fitProfile = fitProfile;
+        const updatedUser = await user.save();
+        return res.json({
+          user: {
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            isAdmin: updatedUser.isAdmin,
+            shippingAddresses: updatedUser.shippingAddresses || [],
+            fitProfile: updatedUser.fitProfile || {},
+          },
+        });
+      }
+    } catch (error) {
+      console.warn('[DB Error during fit profile update, falling back to memory]:', error.message);
+    }
+  }
+
+  // Memory fallback
+  const memUser = memoryUsers.find((u) => String(u._id) === String(req.user._id));
+  if (memUser) {
+    memUser.fitProfile = fitProfile;
+    return res.json({
+      user: {
+        _id: memUser._id,
+        name: memUser.name,
+        email: memUser.email,
+        isAdmin: memUser.isAdmin,
+        shippingAddresses: memUser.shippingAddresses || [],
+        fitProfile: memUser.fitProfile,
+      },
+    });
+  }
+
+  res.status(404).json({ message: 'User not found' });
+};
+
 // @desc    Get all registered users (Admin only)
 // @route   GET /api/auth/users
 // @access  Private/Admin
@@ -314,6 +387,7 @@ module.exports = {
   logoutUser,
   getUserProfile,
   updateUserAddress,
+  updateFitProfile,
   getAllUsers,
   getMemoryUserById,
 };

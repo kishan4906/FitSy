@@ -68,6 +68,9 @@ export const auth = {
   updateAddress: (addressData) =>
     request('/auth/address', { method: 'PUT', body: JSON.stringify(addressData) }),
 
+  updateFitProfile: (fitProfileData) =>
+    request('/auth/fit-profile', { method: 'PUT', body: JSON.stringify(fitProfileData) }),
+
   getAllUsers: () =>
     request('/auth/users'),
 };
@@ -149,6 +152,18 @@ export const stylist = {
     request('/stylist/recommend', {
       method: 'POST',
       body: JSON.stringify({ prompt, occasion, style, budget, color }),
+    }),
+};
+
+// ─── Size Recommendation ────────────────────────────────────────────────────
+// Expected response: { success, data: { status: 'ok'|'no_chart'|'no_match',
+// recommendedSize?, confidence?, alternative?, reason?, measurementBreakdown?,
+// message? } } or { success: false, message } on invalid input.
+export const sizeRecommendation = {
+  recommend: ({ productId, measurements, fitPreference }) =>
+    request('/size-recommendation', {
+      method: 'POST',
+      body: JSON.stringify({ productId, measurements, fitPreference }),
     }),
 };
 

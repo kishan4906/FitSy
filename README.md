@@ -64,6 +64,15 @@
 * **Powered by Groq** (Llama 3.3 70B, JSON mode) via a plain server-side `fetch` call — no client-exposed keys, no new AI SDK dependency.
 * Outfit results plug straight into the existing **cart**, **wishlist**, and **virtual try-on** flows — no parallel systems.
 
+### 📏 7. AI Size Recommendation
+* **Deterministic measurement matching, not a guess**: given a shopper's chest/waist/hip measurements, the backend compares them directly against the *selected product's own* size chart — every recommendation is driven by real per-product data stored on the product, never a universal S/M/L table.
+* **AI never picks the size.** The matching algorithm (`sizeRecommendationService.js`) is a pure, testable function with zero AI calls. Groq is used *only* to rephrase an already-computed result into a warmer sentence — if the AI call fails, the deterministic explanation is used instead and the recommendation itself is unaffected.
+* Supports **letter-sized** apparel (chest/waist/hip range charts, cm) and **numeric-waist** items like jeans (direct waist-measurement matching, e.g. a 71cm waist → size "28").
+* **Fit Preference** (Slim / Regular / Relaxed / Oversized) nudges which part of a valid range is treated as ideal — it can shift *which* real size is favored near a boundary, but can never invent a size the chart doesn't have.
+* Honest by design: confidence is reported as **High / Medium / Low** based on actual match quality (never a fabricated percentage), and products without chart data return a clear "no size chart available" message instead of a fake answer.
+* Optional **My Fit Profile**: logged-in users can save their measurements once and reuse them across products via "Use My Saved Measurements."
+* Selecting a recommended size populates the **existing** product-page size selector — "Add to Cart" is untouched.
+
 ---
 
 ## 🏗️ System Architecture
@@ -424,6 +433,43 @@ If you want to enable pure serverless AI try-on generation using FLUX.2:
 }
 ```
 On failure (`success: false`), `message` explains what went wrong (invalid input, empty catalog, AI unavailable, AI rate-limited, or no matching products) — the frontend renders each of these as a distinct state rather than a raw error.
+
+### 📏 Size Recommendation (`/api/size-recommendation`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/size-recommendation` | Recommend a size from real measurements + the product's real size chart | Public |
+| `PUT` | `/api/auth/fit-profile` | Save the logged-in user's measurements for reuse across products | Private |
+
+**Request body:**
+```json
+{
+  "productId": "64f...",
+  "measurements": { "height": 178, "weight": 72, "chest": 96, "waist": 81, "hip": 96 },
+  "fitPreference": "regular"
+}
+```
+`productId` and `measurements` are required (at least one of chest/waist/hip). `fitPreference` is one of `slim | regular | relaxed | oversized`, defaults to `regular`.
+
+**Response body (successful match):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "recommendedSize": "M",
+    "confidence": "high",
+    "alternative": null,
+    "reason": "Your chest and waist measurements fall within the M size range for this product.",
+    "measurementBreakdown": {
+      "chest": { "user": 96, "min": 90, "max": 98, "match": true },
+      "waist": { "user": 81, "min": 74, "max": 82, "match": true }
+    }
+  }
+}
+```
+Other `data.status` values: `no_chart` (product has no measurement data yet) and `no_match` (measurements fall outside every available size). `success: false` responses cover invalid input (e.g. an unrealistic or non-numeric measurement) and unknown products.
+
+**Limitations:** this feature estimates a likely size from self-reported measurements and each product's stored size chart — it is not a body scan, does not use a camera, and is not a guaranteed or perfect fit. Size chart data for the demo catalog is standard ready-to-wear reference data, not manufacturer-verified per garment. Always treat the result as a starting recommendation, same as any online size guide.
 
 ### ⚡ Webhooks (`/api/webhook`)
 | Method | Endpoint | Description | Access |

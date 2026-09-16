@@ -65,6 +65,7 @@ export function AuthProvider({ children }) {
       email: matchedUser.email,
       isAdmin: Boolean(matchedUser.isAdmin || matchedUser.email.toLowerCase() === 'admin@fitsy.com'),
       shippingAddresses: matchedUser.shippingAddresses || [],
+      fitProfile: matchedUser.fitProfile || {},
     };
     persistUserSession(sessionUser);
     return { success: true, user: sessionUser };
@@ -120,6 +121,7 @@ export function AuthProvider({ children }) {
       email: data.user.email,
       isAdmin: Boolean(data.user.isAdmin || data.user.email?.toLowerCase() === 'admin@fitsy.com'),
       shippingAddresses: data.user.shippingAddresses || [],
+      fitProfile: data.user.fitProfile || {},
     };
     persistUserSession(sessionUser);
     setLoading(false);
@@ -156,6 +158,7 @@ export function AuthProvider({ children }) {
       email: data.user.email,
       isAdmin: Boolean(data.user.isAdmin || data.user.email?.toLowerCase() === 'admin@fitsy.com'),
       shippingAddresses: data.user.shippingAddresses || [],
+      fitProfile: data.user.fitProfile || {},
     };
     persistUserSession(sessionUser);
     setLoading(false);
@@ -175,6 +178,22 @@ export function AuthProvider({ children }) {
     if (apiError) return { success: false, message: apiError };
 
     const updatedUser = { ...user, shippingAddresses: data.user.shippingAddresses };
+    persistUserSession(updatedUser);
+    return { success: true };
+  }
+
+  // ─── Public API: updateFitProfile ───────────────────────────────────────────
+  async function updateFitProfile(fitProfileData) {
+    if (!IS_BACKEND_ENABLED) {
+      const updatedUser = { ...user, fitProfile: fitProfileData };
+      persistUserSession(updatedUser);
+      return { success: true };
+    }
+
+    const { data, error: apiError } = await api.auth.updateFitProfile(fitProfileData);
+    if (apiError) return { success: false, message: apiError };
+
+    const updatedUser = { ...user, fitProfile: data.user.fitProfile };
     persistUserSession(updatedUser);
     return { success: true };
   }
@@ -204,6 +223,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       updateAddress,
+      updateFitProfile,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, loading, error],

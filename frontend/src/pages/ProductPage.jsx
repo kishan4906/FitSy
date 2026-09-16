@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Heart, ShoppingBag, Sparkles, Star, ShieldCheck, Truck, RotateCcw, Check, Ruler, Info } from 'lucide-react';
 import GarmentTryOn from '../components/GarmentTryOn';
+import SizeRecommendationModal from '../components/SizeRecommendationModal';
 import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductsContext';
 import { useStore } from '../context/StoreContext';
@@ -25,6 +26,7 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || 'M');
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Azure Blue');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [showSizeRecommendation, setShowSizeRecommendation] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
   const [feedback, setFeedback] = useState('');
 
@@ -169,12 +171,20 @@ export default function ProductPage() {
                   <label className="text-xs font-bold uppercase tracking-wider text-on-surface">
                     Select Size
                   </label>
-                  <button
-                    onClick={() => setShowSizeGuide(true)}
-                    className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <Ruler className="w-3.5 h-3.5" /> Size Guide
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setShowSizeRecommendation(true)}
+                      className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      📏 Find My Size
+                    </button>
+                    <button
+                      onClick={() => setShowSizeGuide(true)}
+                      className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Ruler className="w-3.5 h-3.5" /> Size Guide
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-3">
@@ -394,6 +404,15 @@ export default function ProductPage() {
         <GarmentTryOn
           product={product}
           onClose={() => setIsTryOnOpen(false)}
+        />
+      )}
+
+      {/* AI Size Recommendation Modal */}
+      {showSizeRecommendation && (
+        <SizeRecommendationModal
+          product={product}
+          onClose={() => setShowSizeRecommendation(false)}
+          onSelectSize={(size) => setSelectedSize(size)}
         />
       )}
     </div>

@@ -32,6 +32,22 @@ const userSchema = new mongoose.Schema(
         phoneNumber: String,
       }
     ],
+    // Optional saved body measurements (cm) for the AI Size Recommendation
+    // feature. Never required to use the feature — a guest or logged-in
+    // user can always enter one-off measurements instead.
+    fitProfile: {
+      height: Number,
+      weight: Number,
+      chest: Number,
+      waist: Number,
+      hip: Number,
+      shoulder: Number,
+      fitPreference: {
+        type: String,
+        enum: ['slim', 'regular', 'relaxed', 'oversized'],
+        default: 'regular',
+      },
+    },
   },
   {
     timestamps: true,
